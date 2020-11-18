@@ -12,9 +12,9 @@ public class AnimCopy : EditorWindow
     Texture2D sourceSheet;
     Texture2D destSheet;
         
-    public Texture2D[] spriteSheetsToApply;
-    public string[] outputAnimationNames;
-    private int numDestSheets = 5;
+    private Texture2D[] spriteSheetsToApply;
+    private string[] outputAnimationNames;
+    private int numDestSheets = 1;
     private Texture2D[] destSheets = { };
     private int numSourceAnims = 1;
     private AnimationClip[] sourceAnims = { };
@@ -22,30 +22,16 @@ public class AnimCopy : EditorWindow
         
 
     // Creates a new option in "Windows"
-    [MenuItem("Window/Copy Animation to new spritesheet")]
+    [MenuItem("Window/Clone animation to new spritesheet")]
     static void Init()
     {
         // Get existing open window or if none, make a new one:
-        AnimCopy window = (AnimCopy)EditorWindow.GetWindow(typeof(AnimCopy));
+        AnimCopy window = (AnimCopy)EditorWindow.GetWindow(typeof(AnimCopy), false, "Animation Clone");
         window.Show();
     }
 
     void OnGUI()
     {
-        /* TODO: implement for multiple animations and sheets at once
-        if (destSheets.Length != numDestSheets)
-        {
-            Texture2D[] temp = new Texture2D[numDestSheets];
-            destSheets.CopyTo(temp, 0);
-            destSheets = temp;
-        }
-        if (sourceAnims.Length != numSourceAnims)
-        {
-            AnimationClip[] temp = new AnimationClip[numSourceAnims];
-            sourceAnims.CopyTo(temp, 0);
-            sourceAnims = temp;
-        } */
-
         GUILayout.Space(25f);
 
         GUILayout.BeginHorizontal();
@@ -64,13 +50,19 @@ public class AnimCopy : EditorWindow
         GUILayout.Space(25f);
 
         GUILayout.BeginHorizontal();
+        GUILayout.Label("Number of spitesheets to apply:", EditorStyles.boldLabel);
+        //numDestSheets = EditorGUILayout.IntField(numDestSheets, GUILayout.Width(220));
+        numDestSheets = EditorGUILayout.IntSlider(numDestSheets, 1, 10, GUILayout.Width(220));
+        GUILayout.EndHorizontal();
+
+        /*GUILayout.BeginHorizontal();
         GUILayout.Label("Destination Spritesheet:", EditorStyles.boldLabel);
         destSheet = (Texture2D)EditorGUILayout.ObjectField(destSheet, typeof(Texture2D), false, GUILayout.Width(220));
         GUILayout.EndHorizontal();
         GUILayout.BeginHorizontal();
         GUILayout.Label("Prefix for new animation:", EditorStyles.boldLabel);
         newPrefix = EditorGUILayout.TextField(newPrefix, GUILayout.Width(220));
-        GUILayout.EndHorizontal();
+        GUILayout.EndHorizontal();*/
 
         /* GUILayout.BeginHorizontal();
         GUILayout.Label("Source animations:", EditorStyles.boldLabel);
@@ -80,16 +72,38 @@ public class AnimCopy : EditorWindow
             GUILayout.BeginHorizontal();
             EditorGUILayout.ObjectField(sourceAnims[i], typeof(AnimationClip), false, GUILayout.Width(220));
             GUILayout.EndHorizontal();
-        }
+        } */
+
         GUILayout.BeginHorizontal();
         GUILayout.Label("Spritesheets to clone to:", EditorStyles.boldLabel);
         GUILayout.EndHorizontal();
+        // resize the destination sheet array if the number requested has changed
+        if (destSheets.Length != numDestSheets)
+        {
+            Debug.Log(numDestSheets);
+            Texture2D[] temp = new Texture2D[numDestSheets];
+            // destSheets.CopyTo(temp, 0,);
+            destSheets = temp;
+        }
+        /* TODO: implement for multiple animations and sheets at once
+        if (sourceAnims.Length != numSourceAnims)
+        {
+            AnimationClip[] temp = new AnimationClip[numSourceAnims];
+            sourceAnims.CopyTo(temp, 0);
+            sourceAnims = temp;
+        } */
+
         for (int i = 0; i < numDestSheets; i++)
         {
             GUILayout.BeginHorizontal();
-            EditorGUILayout.ObjectField(destSheets[i], typeof(Texture2D), false, GUILayout.Width(220));
+            GUILayout.Label("Destination Spritesheet:", EditorStyles.boldLabel);
+            destSheets[i] = (Texture2D)EditorGUILayout.ObjectField(destSheets[i], typeof(Texture2D), false, GUILayout.Width(220));
             GUILayout.EndHorizontal();
-        } */
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Prefix for new animation:", EditorStyles.boldLabel);
+            newPrefix = EditorGUILayout.TextField(newPrefix, GUILayout.Width(220));
+            GUILayout.EndHorizontal();
+        }
 
 
         GUILayout.Space(25f);
@@ -100,7 +114,7 @@ public class AnimCopy : EditorWindow
     }
 
 
-    void CopyAnimationToNewSheet(Texture2D sourceSheet, AnimationClip sourceAnim, Texture2D destSheet)
+    private void CopyAnimationToNewSheet(Texture2D sourceSheet, AnimationClip sourceAnim, Texture2D destSheet)
     {
 
         // Error checking stuff.  Deal with this later, after it's working with known good data
@@ -190,7 +204,7 @@ public class AnimCopy : EditorWindow
 
 
     // takes an array of spriteIDs and creates an inverse lookup dictionary to get sprite number from ID string
-    Dictionary<string, int> CreateSpriteLookupDict(string[] spriteIDs)
+    private Dictionary<string, int> CreateSpriteLookupDict(string[] spriteIDs)
     {
         var outDict = new Dictionary<string, int>();
         for (int i = 0; i < spriteIDs.Length; i++)
@@ -204,7 +218,7 @@ public class AnimCopy : EditorWindow
 
 
     // Transfers spriteslicing from source to destination spritesheet.  Modified from Rampe's code on Unity forum: https://forum.unity.com/threads/copy-spritesheet-slices-and-pivots-solved.301340/
-    void CopySpritesheetSlices(Texture2D source, Texture2D dest)
+    private void CopySpritesheetSlices(Texture2D source, Texture2D dest)
     {
         if (source.GetType() != typeof(Texture2D) || dest.GetType() != typeof(Texture2D))
         {
