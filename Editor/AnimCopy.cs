@@ -145,13 +145,23 @@ public class AnimCopy : EditorWindow
             string sourceGuid = ReadSpritesIDsFromSheetMeta(sourceSheet, out string[] sourceSpriteIDs);
             int[] animSpriteNums = GetSpriteNumbersFromAnimation(sourceSheet, sourceAnim);
             string destGuid = ReadSpritesIDsFromSheetMeta(destSheet, out string[] destSpriteIDs);
-
             string sourcePath = AssetDatabase.GetAssetPath(sourceAnim);
-            string dest = (new Regex(oldPrefix)).Replace(sourcePath, newPrefix[i]);
-            if (dest == sourcePath) dest = "Assets/blank_copy.anim";
 
-            bool worked = AssetDatabase.CopyAsset(sourcePath, dest);
-            string animFile = File.ReadAllText(dest);
+            // defaults, for if prefix boxes are left blank
+            if (newPrefix[i] == null || newPrefix[i] == "")
+            {
+                newPrefix[i] = destSheet.name;
+            }
+            if (oldPrefix == null || oldPrefix == "")
+            {
+                oldPrefix = sourceAnim.name;
+            }
+
+            string destPath = (new Regex(oldPrefix)).Replace(sourcePath, newPrefix[i]);
+            if (destPath == sourcePath) destPath = "Assets/blank_copy.anim";
+
+            bool worked = AssetDatabase.CopyAsset(sourcePath, destPath);
+            string animFile = File.ReadAllText(destPath);
             string newAnimFile = animFile;
             for (int j = 0; j < animSpriteNums.Length; j++)
             {
@@ -161,7 +171,7 @@ public class AnimCopy : EditorWindow
                 newAnimFile = regexReplace.Replace(newAnimFile, newGuidString);
             }
 
-            File.WriteAllText(dest, newAnimFile);
+            File.WriteAllText(destPath, newAnimFile);
             AssetDatabase.Refresh();
         }
         
