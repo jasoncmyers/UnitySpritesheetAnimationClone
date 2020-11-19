@@ -10,7 +10,7 @@ public class AnimCopy : EditorWindow
     AnimationClip sourceAnim;
     AnimationClip destAnim;
     Texture2D sourceSheet;
-    Texture2D destSheet;
+    // Texture2D destSheet;
         
     private Texture2D[] spriteSheetsToApply;
     private string[] outputAnimationNames;
@@ -18,7 +18,8 @@ public class AnimCopy : EditorWindow
     private Texture2D[] destSheets = { };
     private int numSourceAnims = 1;
     private AnimationClip[] sourceAnims = { };
-    private string oldPrefix, newPrefix;
+    private string oldPrefix;
+    private string[] newPrefix;
         
 
     // Creates a new option in "Windows"
@@ -80,9 +81,9 @@ public class AnimCopy : EditorWindow
         // resize the destination sheet array if the number requested has changed
         if (destSheets.Length != numDestSheets)
         {
-            Debug.Log(numDestSheets);
             Texture2D[] temp = new Texture2D[numDestSheets];
-            // destSheets.CopyTo(temp, 0,);
+            int entriesToCopy = numDestSheets > destSheets.Length ? destSheets.Length : numDestSheets;
+            System.Array.Copy(destSheets, temp, entriesToCopy);
             destSheets = temp;
         }
         /* TODO: implement for multiple animations and sheets at once
@@ -95,13 +96,14 @@ public class AnimCopy : EditorWindow
 
         for (int i = 0; i < numDestSheets; i++)
         {
+            GUILayout.Space(10f);
             GUILayout.BeginHorizontal();
             GUILayout.Label("Destination Spritesheet:", EditorStyles.boldLabel);
             destSheets[i] = (Texture2D)EditorGUILayout.ObjectField(destSheets[i], typeof(Texture2D), false, GUILayout.Width(220));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label("Prefix for new animation:", EditorStyles.boldLabel);
-            newPrefix = EditorGUILayout.TextField(newPrefix, GUILayout.Width(220));
+            newPrefix[i] = EditorGUILayout.TextField(newPrefix[i], GUILayout.Width(220));
             GUILayout.EndHorizontal();
         }
 
@@ -109,12 +111,12 @@ public class AnimCopy : EditorWindow
         GUILayout.Space(25f);
         if (GUILayout.Button("Copy animation using new spritesheet"))
         {
-            CopyAnimationToNewSheet(sourceSheet, sourceAnim, destSheet);
+            CopyAnimationToNewSheet(sourceSheet, sourceAnim, destSheets);
         }
     }
 
 
-    private void CopyAnimationToNewSheet(Texture2D sourceSheet, AnimationClip sourceAnim, Texture2D destSheet)
+    private void CopyAnimationToNewSheet(Texture2D sourceSheet, AnimationClip sourceAnim, Texture2D[] destSheets)
     {
 
         // Error checking stuff.  Deal with this later, after it's working with known good data
@@ -128,30 +130,38 @@ public class AnimCopy : EditorWindow
         {
             Debug.Log("Both spritesheets must be Texture2D objects.");
             return;
-        } */      
+        } */
 
-        CopySpritesheetSlices(sourceSheet, destSheet);
-        string sourceGuid = ReadSpritesIDsFromSheetMeta(sourceSheet, out string[] sourceSpriteIDs);
-        int[] animSpriteNums = GetSpriteNumbersFromAnimation(sourceSheet, sourceAnim);
-        string destGuid = ReadSpritesIDsFromSheetMeta(destSheet, out string[] destSpriteIDs);
-        
-        string copyFromPath = AssetDatabase.GetAssetPath(sourceAnim);
-        string dest = (new Regex(oldPrefix)).Replace(copyFromPath, newPrefix);
-        if (dest == copyFromPath) dest = "Assets/blank_copy.anim";
-                
-        bool worked = AssetDatabase.CopyAsset(copyFromPath, dest);
-        string animFile = File.ReadAllText(dest);
-        string newAnimFile = animFile;
-        for (int i = 0; i < animSpriteNums.Length; i++)
+
+        for (int i = 0; i < destSheets.Length; i++)
         {
-            string replaceGuid = "value: {fileID: " + sourceSpriteIDs[i] + ", guid: " + sourceGuid + ",";
-            string newGuidString = "value: {fileID: " + destSpriteIDs[i] + ", guid: " + destGuid + ",";
-            var regexReplace = new Regex(replaceGuid);
-            newAnimFile = regexReplace.Replace(newAnimFile, newGuidString);
+            Texture2D destSheet = destSheets[i];
+            if (destSheet == null) continue;
+
+            CopySpritesheetSlices(sourceSheet, destSheet);
+            string sourceGuid = ReadSpritesIDsFromSheetMeta(sourceSheet, out string[] sourceSpriteIDs);
+            int[] animSpriteNums = GetSpriteNumbersFromAnimation(sourceSheet, sourceAnim);
+            string destGuid = ReadSpritesIDsFromSheetMeta(destSheet, out string[] destSpriteIDs);
+
+            string sourcePath = AssetDatabase.GetAssetPath(sourceAnim);
+            string dest = (new Regex(oldPrefix)).Replace(sourcePath, newPrefix[i]);
+            if (dest == sourcePath) dest = "Assets/blank_copy.anim";
+
+            bool worked = AssetDatabase.CopyAsset(sourcePath, dest);
+            string animFile = File.ReadAllText(dest);
+            string newAnimFile = animFile;
+            for (int j = 0; j < animSpriteNums.Length; j++)
+            {
+                string replaceGuid = "value: {fileID: " + sourceSpriteIDs[j] + ", guid: " + sourceGuid + ",";
+                string newGuidString = "value: {fileID: " + destSpriteIDs[j] + ", guid: " + destGuid + ",";
+                var regexReplace = new Regex(replaceGuid);
+                newAnimFile = regexReplace.Replace(newAnimFile, newGuidString);
+            }
+
+            File.WriteAllText(dest, newAnimFile);
+            AssetDatabase.Refresh();
         }
         
-        File.WriteAllText(dest, newAnimFile);
-        AssetDatabase.Refresh();
     }
 
 
@@ -163,7 +173,7 @@ public class AnimCopy : EditorWindow
         string metaFile = File.ReadAllText(assetPath + ".meta");
 
         string guidPattern = "guid: ([\\w]*)\r?\n";
-        string spriteIDpattern = "213: (-?[\\d]*)\r?\n";
+        string spriteIDpattern = "internalID: (-?[\\d]*)\r?\n";
         var regexGuid = new Regex(guidPattern);
         var regexSprites = new Regex(spriteIDpattern);
         string guid = regexGuid.Match(metaFile).Groups[1].ToString();
@@ -228,7 +238,7 @@ public class AnimCopy : EditorWindow
 
         if (source.height != dest.height || source.width != dest.width)
         {
-            Debug.LogError("Dimensions of spritesheets must match.  Source: " + sourceSheet.height + "x" + sourceSheet.width + "; Destination: " + destSheet.height + "x" + destSheet.width);
+            Debug.LogError("Dimensions of spritesheets must match.  Source: " + source.height + "x" + source.width + "; Destination: " + dest.height + "x" + dest.width);
             return;
         }
 
@@ -243,7 +253,7 @@ public class AnimCopy : EditorWindow
         // copy settings over, then toggle import mode off/on to reset any existing sprites
         EditorUtility.CopySerialized(ti1, ti2);        
         // the below can be used to rename the sprites, if desired.  TODO: figure this out, maybe give options for renaming or not.
-        ti2.spriteImportMode = SpriteImportMode.None;
+        ti2.spriteImportMode = SpriteImportMode.Single;
         ti2.spriteImportMode = SpriteImportMode.Multiple;
 
         List<SpriteMetaData> newData = new List<SpriteMetaData>();
