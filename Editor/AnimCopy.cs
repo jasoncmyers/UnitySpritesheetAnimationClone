@@ -19,7 +19,7 @@ public class AnimCopy : EditorWindow
     private int numSourceAnims = 1;
     private AnimationClip[] sourceAnims = { };
     private string oldPrefix;
-    private string[] newPrefix;
+    private string[] newPrefix = { };
         
 
     // Creates a new option in "Windows"
@@ -82,9 +82,12 @@ public class AnimCopy : EditorWindow
         if (destSheets.Length != numDestSheets)
         {
             Texture2D[] temp = new Texture2D[numDestSheets];
+            string[] prefix_temp = new string[numDestSheets];
             int entriesToCopy = numDestSheets > destSheets.Length ? destSheets.Length : numDestSheets;
             System.Array.Copy(destSheets, temp, entriesToCopy);
+            System.Array.Copy(newPrefix, prefix_temp, entriesToCopy);
             destSheets = temp;
+            newPrefix = prefix_temp;
         }
         /* TODO: implement for multiple animations and sheets at once
         if (sourceAnims.Length != numSourceAnims)
