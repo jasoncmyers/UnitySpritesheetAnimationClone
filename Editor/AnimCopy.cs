@@ -16,10 +16,8 @@ public class AnimCopy : EditorWindow
     private string[] outputAnimationNames;
     private int numDestSheets = 1;
     private Texture2D[] destSheets = { };
-    private int numSourceAnims = 1;
-    private AnimationClip[] sourceAnims = { };
-    private string oldPrefix;
-    private string[] newPrefix = { };
+    private string oldNameText;
+    private string[] newNameText = { };
         
 
     // Creates a new option in "Windows"
@@ -44,36 +42,16 @@ public class AnimCopy : EditorWindow
         sourceSheet = (Texture2D)EditorGUILayout.ObjectField(sourceSheet, typeof(Texture2D), false, GUILayout.Width(220));
         GUILayout.EndHorizontal();
         GUILayout.BeginHorizontal();
-        GUILayout.Label("Prefix to replace:", EditorStyles.boldLabel);
-        oldPrefix = EditorGUILayout.TextField(oldPrefix, GUILayout.Width(220));
+        GUILayout.Label("Text to replace in animation name:", EditorStyles.boldLabel);
+        oldNameText = EditorGUILayout.TextField(oldNameText, GUILayout.Width(220));
         GUILayout.EndHorizontal();
 
         GUILayout.Space(25f);
 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Number of spitesheets to apply:", EditorStyles.boldLabel);
-        //numDestSheets = EditorGUILayout.IntField(numDestSheets, GUILayout.Width(220));
         numDestSheets = EditorGUILayout.IntSlider(numDestSheets, 1, 10, GUILayout.Width(220));
         GUILayout.EndHorizontal();
-
-        /*GUILayout.BeginHorizontal();
-        GUILayout.Label("Destination Spritesheet:", EditorStyles.boldLabel);
-        destSheet = (Texture2D)EditorGUILayout.ObjectField(destSheet, typeof(Texture2D), false, GUILayout.Width(220));
-        GUILayout.EndHorizontal();
-        GUILayout.BeginHorizontal();
-        GUILayout.Label("Prefix for new animation:", EditorStyles.boldLabel);
-        newPrefix = EditorGUILayout.TextField(newPrefix, GUILayout.Width(220));
-        GUILayout.EndHorizontal();*/
-
-        /* GUILayout.BeginHorizontal();
-        GUILayout.Label("Source animations:", EditorStyles.boldLabel);
-        GUILayout.EndHorizontal();
-        for (int i = 0; i < numSourceAnims; i++)
-        {
-            GUILayout.BeginHorizontal();
-            EditorGUILayout.ObjectField(sourceAnims[i], typeof(AnimationClip), false, GUILayout.Width(220));
-            GUILayout.EndHorizontal();
-        } */
 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Spritesheets to clone to:", EditorStyles.boldLabel);
@@ -85,18 +63,11 @@ public class AnimCopy : EditorWindow
             string[] prefix_temp = new string[numDestSheets];
             int entriesToCopy = numDestSheets > destSheets.Length ? destSheets.Length : numDestSheets;
             System.Array.Copy(destSheets, temp, entriesToCopy);
-            System.Array.Copy(newPrefix, prefix_temp, entriesToCopy);
+            System.Array.Copy(newNameText, prefix_temp, entriesToCopy);
             destSheets = temp;
-            newPrefix = prefix_temp;
+            newNameText = prefix_temp;
         }
-        /* TODO: implement for multiple animations and sheets at once
-        if (sourceAnims.Length != numSourceAnims)
-        {
-            AnimationClip[] temp = new AnimationClip[numSourceAnims];
-            sourceAnims.CopyTo(temp, 0);
-            sourceAnims = temp;
-        } */
-
+        
         for (int i = 0; i < numDestSheets; i++)
         {
             GUILayout.Space(10f);
@@ -105,8 +76,8 @@ public class AnimCopy : EditorWindow
             destSheets[i] = (Texture2D)EditorGUILayout.ObjectField(destSheets[i], typeof(Texture2D), false, GUILayout.Width(220));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Prefix for new animation:", EditorStyles.boldLabel);
-            newPrefix[i] = EditorGUILayout.TextField(newPrefix[i], GUILayout.Width(220));
+            GUILayout.Label("Replacment text for new animation:", EditorStyles.boldLabel);
+            newNameText[i] = EditorGUILayout.TextField(newNameText[i], GUILayout.Width(220));
             GUILayout.EndHorizontal();
         }
 
@@ -148,16 +119,16 @@ public class AnimCopy : EditorWindow
             string sourcePath = AssetDatabase.GetAssetPath(sourceAnim);
 
             // defaults, for if prefix boxes are left blank
-            if (newPrefix[i] == null || newPrefix[i] == "")
+            if (newNameText[i] == null || newNameText[i] == "")
             {
-                newPrefix[i] = destSheet.name;
+                newNameText[i] = destSheet.name;
             }
-            if (oldPrefix == null || oldPrefix == "")
+            if (oldNameText == null || oldNameText == "")
             {
-                oldPrefix = sourceAnim.name;
+                oldNameText = sourceAnim.name;
             }
 
-            string destPath = (new Regex(oldPrefix)).Replace(sourcePath, newPrefix[i]);
+            string destPath = (new Regex(oldNameText)).Replace(sourcePath, newNameText[i]);
             if (destPath == sourcePath) destPath = "Assets/blank_copy.anim";
 
             bool worked = AssetDatabase.CopyAsset(sourcePath, destPath);

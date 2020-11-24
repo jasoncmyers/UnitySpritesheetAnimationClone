@@ -12,14 +12,10 @@ public class AnimatorOverrideClone : EditorWindow
     private Texture2D sourceSheet;
     private int numDestSheets = 1;
     private Texture2D[] destSheets = { };
-    private int numSourceAnims = 1;
-    private AnimationClip[] sourceAnims = { };
-    private string oldPrefix;
-    private string[] newPrefix = { };
+    private string oldNameText;
+    private string[] newNameText = { };
 
-    private AnimatorOverrideController animOR;
-        
-
+    
     // Creates a new option in "Windows"
     [MenuItem("Window/Clone animator for spritesheet override")]
     static void Init()
@@ -39,24 +35,18 @@ public class AnimatorOverrideClone : EditorWindow
         GUILayout.EndHorizontal();
 
         GUILayout.BeginHorizontal();
-        GUILayout.Label("Clone Controller:", EditorStyles.boldLabel);
-        animOR = (AnimatorOverrideController)EditorGUILayout.ObjectField(animOR, typeof(AnimatorOverrideController), false, GUILayout.Width(220));
-        GUILayout.EndHorizontal();
-
-        GUILayout.BeginHorizontal();
         GUILayout.Label("Original Spritesheet:", EditorStyles.boldLabel);
         sourceSheet = (Texture2D)EditorGUILayout.ObjectField(sourceSheet, typeof(Texture2D), false, GUILayout.Width(220));
         GUILayout.EndHorizontal();
         GUILayout.BeginHorizontal();
-        GUILayout.Label("Prefix to replace:", EditorStyles.boldLabel);
-        oldPrefix = EditorGUILayout.TextField(oldPrefix, GUILayout.Width(220));
+        GUILayout.Label("Text to replace in animator name:", EditorStyles.boldLabel);
+        oldNameText = EditorGUILayout.TextField(oldNameText, GUILayout.Width(220));
         GUILayout.EndHorizontal();
 
         GUILayout.Space(25f);
 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Number of spitesheets to apply:", EditorStyles.boldLabel);
-        //numDestSheets = EditorGUILayout.IntField(numDestSheets, GUILayout.Width(220));
         numDestSheets = EditorGUILayout.IntSlider(numDestSheets, 1, 10, GUILayout.Width(220));
         GUILayout.EndHorizontal();
 
@@ -70,9 +60,9 @@ public class AnimatorOverrideClone : EditorWindow
             string[] prefix_temp = new string[numDestSheets];
             int entriesToCopy = numDestSheets > destSheets.Length ? destSheets.Length : numDestSheets;
             System.Array.Copy(destSheets, temp, entriesToCopy);
-            System.Array.Copy(newPrefix, prefix_temp, entriesToCopy);
+            System.Array.Copy(newNameText, prefix_temp, entriesToCopy);
             destSheets = temp;
-            newPrefix = prefix_temp;
+            newNameText = prefix_temp;
         }
         
 
@@ -84,14 +74,14 @@ public class AnimatorOverrideClone : EditorWindow
             destSheets[i] = (Texture2D)EditorGUILayout.ObjectField(destSheets[i], typeof(Texture2D), false, GUILayout.Width(220));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Prefix for new animation:", EditorStyles.boldLabel);
-            newPrefix[i] = EditorGUILayout.TextField(newPrefix[i], GUILayout.Width(220));
+            GUILayout.Label("Replacement text for new animations:", EditorStyles.boldLabel);
+            newNameText[i] = EditorGUILayout.TextField(newNameText[i], GUILayout.Width(220));
             GUILayout.EndHorizontal();
         }
 
 
         GUILayout.Space(25f);
-        if (GUILayout.Button("Copy animator using new spritesheets"))
+        if (GUILayout.Button("Create animator override using new spritesheets"))
         {
             CloneAnimatorController(sourceAnim);
         }
@@ -103,8 +93,8 @@ public class AnimatorOverrideClone : EditorWindow
         for (int i = 0; i < destSheets.Length; i++)
         {
             CopySpritesheetSlices(sourceSheet, destSheets[i]);
-            var clipList = CopyAnimationsToNewSheet(source.animationClips, sourceSheet, destSheets[i], oldPrefix, newPrefix[i]);
-            CreateAndPopulateOverrideController(sourceAnim, clipList, oldPrefix, newPrefix[i]);
+            var clipList = CopyAnimationsToNewSheet(source.animationClips, sourceSheet, destSheets[i], oldNameText, newNameText[i]);
+            CreateAndPopulateOverrideController(sourceAnim, clipList, oldNameText, newNameText[i]);
         }        
     }
 
