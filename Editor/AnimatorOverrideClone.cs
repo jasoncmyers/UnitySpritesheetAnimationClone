@@ -93,35 +93,19 @@ public class AnimatorOverrideClone : EditorWindow
         GUILayout.Space(25f);
         if (GUILayout.Button("Copy animator using new spritesheets"))
         {
-            TestAnimController(sourceAnim);
+            CloneAnimatorController(sourceAnim);
         }
     }
 
 
-    private void TestAnimController(AnimatorController source)
+    private void CloneAnimatorController(AnimatorController source)
     {
-        /*foreach (var clip in source.animationClips)
+        for (int i = 0; i < destSheets.Length; i++)
         {
-            string test = AssetDatabase.GetAssetPath(clip);
-            Debug.Log(test);
-            var a_clip = AssetDatabase.LoadAssetAtPath(test, typeof(AnimationClip));
-            Debug.Log(a_clip.name);
-        }
-
-        var overrides = new List<KeyValuePair<AnimationClip, AnimationClip>>();
-        animOR.GetOverrides(overrides);
-        Debug.Log("*****\n" + animOR.runtimeAnimatorController.name + "\n*****");
-        foreach(var clip in overrides)
-        {
-            Debug.Log(clip);
-        }
-        AnimationClip blue_skull_walk = (AnimationClip)AssetDatabase.LoadAssetAtPath("Assets/Animation/drone_walking_berry.anim", typeof(AnimationClip));
-        Debug.Log("*******\n" + animOR["drone_walking"]);
-        animOR["drone_walking"] = blue_skull_walk;
-        Debug.Log("*******\n" + animOR["drone_walking"]); */
-
-        var clipList = CopyAnimationsToNewSheet(source.animationClips, sourceSheet, destSheets[0], oldPrefix, newPrefix[0]);
-        CreateAndPopulateOverrideController(sourceAnim, clipList, oldPrefix, newPrefix[0]);
+            CopySpritesheetSlices(sourceSheet, destSheets[i]);
+            var clipList = CopyAnimationsToNewSheet(source.animationClips, sourceSheet, destSheets[i], oldPrefix, newPrefix[i]);
+            CreateAndPopulateOverrideController(sourceAnim, clipList, oldPrefix, newPrefix[i]);
+        }        
     }
 
 
@@ -186,8 +170,14 @@ public class AnimatorOverrideClone : EditorWindow
 
         var overrideList = new List<KeyValuePair<AnimationClip, AnimationClip>>();
         newAnimOverride.ApplyOverrides(overrideClips);
-        
-        AssetDatabase.CreateAsset(newAnimOverride, "Assets/Animation/test.overrideController");
+
+        string sourcePath = AssetDatabase.GetAssetPath(sourceAnimator);
+        //Debug.Log("Source path: " + sourcePath);
+        string destPath = (new Regex(oldPrefix)).Replace(sourcePath, newPrefix);
+        //Debug.Log("Destination path: " + destPath);
+        destPath = Path.ChangeExtension(destPath, "overrideController");
+        //Debug.Log("New destination path: " + destPath);
+        AssetDatabase.CreateAsset(newAnimOverride, destPath);
     }
 
 
