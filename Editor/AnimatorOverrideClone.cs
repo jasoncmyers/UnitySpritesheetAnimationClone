@@ -126,7 +126,7 @@ public class AnimatorOverrideClone : EditorWindow
 
     private void TestAnimController(AnimatorController source)
     {
-        foreach (var clip in source.animationClips)
+        /*foreach (var clip in source.animationClips)
         {
             string test = AssetDatabase.GetAssetPath(clip);
             Debug.Log(test);
@@ -144,13 +144,65 @@ public class AnimatorOverrideClone : EditorWindow
         AnimationClip blue_skull_walk = (AnimationClip)AssetDatabase.LoadAssetAtPath("Assets/Animation/drone_walking_berry.anim", typeof(AnimationClip));
         Debug.Log("*******\n" + animOR["drone_walking"]);
         animOR["drone_walking"] = blue_skull_walk;
-        Debug.Log("*******\n" + animOR["drone_walking"]);
+        Debug.Log("*******\n" + animOR["drone_walking"]); */
 
-
+        var clipList = CopyAnimationsToNewSheet(source.animationClips, sourceSheet, destSheets[0], oldPrefix, newPrefix[0]);
     }
 
 
-    private void CopyAnimationToNewSheet(Texture2D sourceSheet, AnimationClip sourceAnim, Texture2D[] destSheets)
+    // Copies a set of animations to use a new spritesheet.  Returns the set of new clips, in the same order as the original.
+    // Assumes that the destination spritesheet has already been sliced to match the source (to avoid reslicing repeatedly)
+    private AnimationClip[] CopyAnimationsToNewSheet(AnimationClip[] sourceAnims, Texture2D sourceSheet, Texture2D destSheet, 
+        string oldPrefix, string newPrefix)
+    {
+        if (sourceAnims == null) return null;
+
+        AnimationClip[] newClips = new AnimationClip[sourceAnims.Length];
+        for (int i = 0; i < sourceAnims.Length; i++)
+        {
+            AnimationClip sourceAnim = sourceAnims[i];
+
+            string sourceGuid = ReadSpritesIDsFromSheetMeta(sourceSheet, out string[] sourceSpriteIDs);
+            int[] animSpriteNums = GetSpriteNumbersFromAnimation(sourceSheet, sourceAnim);
+            string destGuid = ReadSpritesIDsFromSheetMeta(destSheet, out string[] destSpriteIDs);
+                        
+            string sourcePath = AssetDatabase.GetAssetPath(sourceAnim);
+
+            // defaults, for if prefix boxes are left blank
+            if (newPrefix == null || newPrefix == "")
+            {
+                newPrefix = destSheet.name;
+            }
+            if (oldPrefix == null || oldPrefix == "")
+            {
+                oldPrefix = sourceAnim.name;
+            }
+
+            string destPath = (new Regex(oldPrefix)).Replace(sourcePath, newPrefix);
+            if (destPath == sourcePath) destPath = "Assets/blank_copy.anim";
+
+            bool worked = AssetDatabase.CopyAsset(sourcePath, destPath);
+            string animFile = File.ReadAllText(destPath);
+            string newAnimFile = animFile;
+            for (int j = 0; j < animSpriteNums.Length; j++)
+            {
+                string replaceGuid = "value: {fileID: " + sourceSpriteIDs[animSpriteNums[j]] + ", guid: " + sourceGuid + ",";
+                string newGuidString = "value: {fileID: " + destSpriteIDs[animSpriteNums[j]] + ", guid: " + destGuid + ",";
+                var regexReplace = new Regex(replaceGuid);
+                newAnimFile = regexReplace.Replace(newAnimFile, newGuidString);
+            }
+
+            File.WriteAllText(destPath, newAnimFile);
+            AssetDatabase.Refresh();
+
+            newClips[i] = (AnimationClip)AssetDatabase.LoadAssetAtPath(destPath, typeof(AnimationClip));
+        }
+
+        return newClips;
+    }
+
+
+    private void CopyAnimationToNewSheets(Texture2D sourceSheet, AnimationClip sourceAnim, Texture2D[] destSheets)
     {
 
         // Error checking stuff.  Deal with this later, after it's working with known good data
