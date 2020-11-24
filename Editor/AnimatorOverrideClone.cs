@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEditor;
+using UnityEditor.Animations;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -7,7 +8,7 @@ using System.Text.RegularExpressions;
 public class AnimatorOverrideClone : EditorWindow
 {
 
-    private Animator sourceAnim;
+    private AnimatorController sourceAnim;
     private Texture2D sourceSheet;
     private int numDestSheets = 1;
     private Texture2D[] destSheets = { };
@@ -15,10 +16,12 @@ public class AnimatorOverrideClone : EditorWindow
     private AnimationClip[] sourceAnims = { };
     private string oldPrefix;
     private string[] newPrefix = { };
+
+    private AnimatorOverrideController animOR;
         
 
     // Creates a new option in "Windows"
-    [MenuItem("Window/Clone animator to spritesheet override")]
+    [MenuItem("Window/Clone animator for spritesheet override")]
     static void Init()
     {
         // Get existing open window or if none, make a new one:
@@ -32,8 +35,14 @@ public class AnimatorOverrideClone : EditorWindow
                 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Original Animation Controller:", EditorStyles.boldLabel);
-        sourceAnim = (Animator)EditorGUILayout.ObjectField(sourceAnim, typeof(AnimationClip), false, GUILayout.Width(220));
+        sourceAnim = (AnimatorController)EditorGUILayout.ObjectField(sourceAnim, typeof(AnimatorController), false, GUILayout.Width(220));
         GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Clone Controller:", EditorStyles.boldLabel);
+        animOR = (AnimatorOverrideController)EditorGUILayout.ObjectField(animOR, typeof(AnimatorOverrideController), false, GUILayout.Width(220));
+        GUILayout.EndHorizontal();
+
         GUILayout.BeginHorizontal();
         GUILayout.Label("Original Spritesheet:", EditorStyles.boldLabel);
         sourceSheet = (Texture2D)EditorGUILayout.ObjectField(sourceSheet, typeof(Texture2D), false, GUILayout.Width(220));
@@ -109,8 +118,35 @@ public class AnimatorOverrideClone : EditorWindow
         GUILayout.Space(25f);
         if (GUILayout.Button("Copy animation using new spritesheet"))
         {
-            CopyAnimationToNewSheet(sourceSheet, sourceAnim, destSheets);
+            //CopyAnimationToNewSheet(sourceSheet, sourceAnim, destSheets);
+            TestAnimController(sourceAnim);
         }
+    }
+
+
+    private void TestAnimController(AnimatorController source)
+    {
+        foreach (var clip in source.animationClips)
+        {
+            string test = AssetDatabase.GetAssetPath(clip);
+            Debug.Log(test);
+            var a_clip = AssetDatabase.LoadAssetAtPath(test, typeof(AnimationClip));
+            Debug.Log(a_clip.name);
+        }
+
+        var overrides = new List<KeyValuePair<AnimationClip, AnimationClip>>();
+        animOR.GetOverrides(overrides);
+        Debug.Log("*****\n" + animOR.runtimeAnimatorController.name + "\n*****");
+        foreach(var clip in overrides)
+        {
+            Debug.Log(clip);
+        }
+        AnimationClip blue_skull_walk = (AnimationClip)AssetDatabase.LoadAssetAtPath("Assets/Animation/drone_walking_berry.anim", typeof(AnimationClip));
+        Debug.Log("*******\n" + animOR["drone_walking"]);
+        animOR["drone_walking"] = blue_skull_walk;
+        Debug.Log("*******\n" + animOR["drone_walking"]);
+
+
     }
 
 
