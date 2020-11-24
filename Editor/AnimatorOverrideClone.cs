@@ -60,25 +60,6 @@ public class AnimatorOverrideClone : EditorWindow
         numDestSheets = EditorGUILayout.IntSlider(numDestSheets, 1, 10, GUILayout.Width(220));
         GUILayout.EndHorizontal();
 
-        /*GUILayout.BeginHorizontal();
-        GUILayout.Label("Destination Spritesheet:", EditorStyles.boldLabel);
-        destSheet = (Texture2D)EditorGUILayout.ObjectField(destSheet, typeof(Texture2D), false, GUILayout.Width(220));
-        GUILayout.EndHorizontal();
-        GUILayout.BeginHorizontal();
-        GUILayout.Label("Prefix for new animation:", EditorStyles.boldLabel);
-        newPrefix = EditorGUILayout.TextField(newPrefix, GUILayout.Width(220));
-        GUILayout.EndHorizontal();*/
-
-        /* GUILayout.BeginHorizontal();
-        GUILayout.Label("Source animations:", EditorStyles.boldLabel);
-        GUILayout.EndHorizontal();
-        for (int i = 0; i < numSourceAnims; i++)
-        {
-            GUILayout.BeginHorizontal();
-            EditorGUILayout.ObjectField(sourceAnims[i], typeof(AnimationClip), false, GUILayout.Width(220));
-            GUILayout.EndHorizontal();
-        } */
-
         GUILayout.BeginHorizontal();
         GUILayout.Label("Spritesheets to clone to:", EditorStyles.boldLabel);
         GUILayout.EndHorizontal();
@@ -93,13 +74,7 @@ public class AnimatorOverrideClone : EditorWindow
             destSheets = temp;
             newPrefix = prefix_temp;
         }
-        /* TODO: implement for multiple animations and sheets at once
-        if (sourceAnims.Length != numSourceAnims)
-        {
-            AnimationClip[] temp = new AnimationClip[numSourceAnims];
-            sourceAnims.CopyTo(temp, 0);
-            sourceAnims = temp;
-        } */
+        
 
         for (int i = 0; i < numDestSheets; i++)
         {
@@ -116,9 +91,8 @@ public class AnimatorOverrideClone : EditorWindow
 
 
         GUILayout.Space(25f);
-        if (GUILayout.Button("Copy animation using new spritesheet"))
+        if (GUILayout.Button("Copy animator using new spritesheets"))
         {
-            //CopyAnimationToNewSheet(sourceSheet, sourceAnim, destSheets);
             TestAnimController(sourceAnim);
         }
     }
@@ -147,17 +121,19 @@ public class AnimatorOverrideClone : EditorWindow
         Debug.Log("*******\n" + animOR["drone_walking"]); */
 
         var clipList = CopyAnimationsToNewSheet(source.animationClips, sourceSheet, destSheets[0], oldPrefix, newPrefix[0]);
+        CreateAndPopulateOverrideController(sourceAnim, clipList, oldPrefix, newPrefix[0]);
     }
 
 
     // Copies a set of animations to use a new spritesheet.  Returns the set of new clips, in the same order as the original.
     // Assumes that the destination spritesheet has already been sliced to match the source (to avoid reslicing repeatedly)
-    private AnimationClip[] CopyAnimationsToNewSheet(AnimationClip[] sourceAnims, Texture2D sourceSheet, Texture2D destSheet, 
+    private List<KeyValuePair<AnimationClip, AnimationClip>> 
+        CopyAnimationsToNewSheet(AnimationClip[] sourceAnims, Texture2D sourceSheet, Texture2D destSheet, 
         string oldPrefix, string newPrefix)
     {
         if (sourceAnims == null) return null;
 
-        AnimationClip[] newClips = new AnimationClip[sourceAnims.Length];
+        var newClips = new List<KeyValuePair<AnimationClip, AnimationClip>>();
         for (int i = 0; i < sourceAnims.Length; i++)
         {
             AnimationClip sourceAnim = sourceAnims[i];
@@ -195,71 +171,24 @@ public class AnimatorOverrideClone : EditorWindow
             File.WriteAllText(destPath, newAnimFile);
             AssetDatabase.Refresh();
 
-            newClips[i] = (AnimationClip)AssetDatabase.LoadAssetAtPath(destPath, typeof(AnimationClip));
+            var newClipPair = new KeyValuePair<AnimationClip, AnimationClip>(sourceAnim, (AnimationClip)AssetDatabase.LoadAssetAtPath(destPath, typeof(AnimationClip)));
+            newClips.Add(newClipPair);
         }
 
         return newClips;
     }
 
 
-    private void CopyAnimationToNewSheets(Texture2D sourceSheet, AnimationClip sourceAnim, Texture2D[] destSheets)
+    private void CreateAndPopulateOverrideController(AnimatorController sourceAnimator, List<KeyValuePair<AnimationClip, AnimationClip>> overrideClips, string oldPrefix, string newPrefix)
     {
+        AnimatorOverrideController newAnimOverride = new AnimatorOverrideController();
+        newAnimOverride.runtimeAnimatorController = sourceAnimator;
 
-        // Error checking stuff.  Deal with this later, after it's working with known good data
-        /* if (!sourceAnim || !destAnim || !sourceSheet || !destSheet)
-        {
-            Debug.Log("Missing at least one object");
-            return;
-        }
-
-        if (sourceSheet.GetType() != typeof(Texture2D) || destSheet.GetType() != typeof(Texture2D))
-        {
-            Debug.Log("Both spritesheets must be Texture2D objects.");
-            return;
-        } */
-
-
-        for (int i = 0; i < destSheets.Length; i++)
-        {
-            Texture2D destSheet = destSheets[i];
-            if (destSheet == null) continue;
-
-            CopySpritesheetSlices(sourceSheet, destSheet);
-            string sourceGuid = ReadSpritesIDsFromSheetMeta(sourceSheet, out string[] sourceSpriteIDs);
-            int[] animSpriteNums = GetSpriteNumbersFromAnimation(sourceSheet, sourceAnim);
-            string destGuid = ReadSpritesIDsFromSheetMeta(destSheet, out string[] destSpriteIDs);
-            string sourcePath = AssetDatabase.GetAssetPath(sourceAnim);
-
-            // defaults, for if prefix boxes are left blank
-            if (newPrefix[i] == null || newPrefix[i] == "")
-            {
-                newPrefix[i] = destSheet.name;
-            }
-            if (oldPrefix == null || oldPrefix == "")
-            {
-                oldPrefix = sourceAnim.name;
-            }
-
-            string destPath = (new Regex(oldPrefix)).Replace(sourcePath, newPrefix[i]);
-            if (destPath == sourcePath) destPath = "Assets/blank_copy.anim";
-
-            bool worked = AssetDatabase.CopyAsset(sourcePath, destPath);
-            string animFile = File.ReadAllText(destPath);
-            string newAnimFile = animFile;
-            for (int j = 0; j < animSpriteNums.Length; j++)
-            {
-                string replaceGuid = "value: {fileID: " + sourceSpriteIDs[j] + ", guid: " + sourceGuid + ",";
-                string newGuidString = "value: {fileID: " + destSpriteIDs[j] + ", guid: " + destGuid + ",";
-                var regexReplace = new Regex(replaceGuid);
-                newAnimFile = regexReplace.Replace(newAnimFile, newGuidString);
-            }
-
-            File.WriteAllText(destPath, newAnimFile);
-            AssetDatabase.Refresh();
-        }
+        var overrideList = new List<KeyValuePair<AnimationClip, AnimationClip>>();
+        newAnimOverride.ApplyOverrides(overrideClips);
         
+        AssetDatabase.CreateAsset(newAnimOverride, "Assets/Animation/test.overrideController");
     }
-
 
 
     // returns spritesheet's guid and fills spriteIDs with fileID for each sprite in the sheet metadata
