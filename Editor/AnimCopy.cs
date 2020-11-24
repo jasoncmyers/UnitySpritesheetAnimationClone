@@ -114,12 +114,12 @@ public class AnimCopy : EditorWindow
         GUILayout.Space(25f);
         if (GUILayout.Button("Copy animation using new spritesheet"))
         {
-            CopyAnimationToNewSheet(sourceSheet, sourceAnim, destSheets);
+            CopyAnimationToNewSheets(sourceSheet, sourceAnim, destSheets);
         }
     }
 
 
-    private void CopyAnimationToNewSheet(Texture2D sourceSheet, AnimationClip sourceAnim, Texture2D[] destSheets)
+    private void CopyAnimationToNewSheets(Texture2D sourceSheet, AnimationClip sourceAnim, Texture2D[] destSheets)
     {
 
         // Error checking stuff.  Deal with this later, after it's working with known good data
@@ -165,8 +165,8 @@ public class AnimCopy : EditorWindow
             string newAnimFile = animFile;
             for (int j = 0; j < animSpriteNums.Length; j++)
             {
-                string replaceGuid = "value: {fileID: " + sourceSpriteIDs[j] + ", guid: " + sourceGuid + ",";
-                string newGuidString = "value: {fileID: " + destSpriteIDs[j] + ", guid: " + destGuid + ",";
+                string replaceGuid = "value: {fileID: " + sourceSpriteIDs[animSpriteNums[j]] + ", guid: " + sourceGuid + ",";
+                string newGuidString = "value: {fileID: " + destSpriteIDs[animSpriteNums[j]] + ", guid: " + destGuid + ",";
                 var regexReplace = new Regex(replaceGuid);
                 newAnimFile = regexReplace.Replace(newAnimFile, newGuidString);
             }
