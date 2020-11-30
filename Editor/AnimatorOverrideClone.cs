@@ -14,8 +14,10 @@ public class AnimatorOverrideClone : EditorWindow
     private Texture2D[] destSheets = { };
     private string oldNameText;
     private string[] newNameText = { };
+    private bool[] useClips;
+    AnimatorController lastAnim = null;
 
-    
+
     // Creates a new option in "Windows"
     [MenuItem("Window/Clone animator for spritesheet override")]
     static void Init()
@@ -33,6 +35,33 @@ public class AnimatorOverrideClone : EditorWindow
         GUILayout.Label("Original Animation Controller:", EditorStyles.boldLabel);
         sourceAnim = (AnimatorController)EditorGUILayout.ObjectField(sourceAnim, typeof(AnimatorController), false, GUILayout.Width(220));
         GUILayout.EndHorizontal();
+
+        // list the animation clips for the animator, allowing de-selection of ones that shouldn't be overridden
+        if (sourceAnim != null)
+        {
+            if (sourceAnim != lastAnim)
+            {
+                Debug.Log("Updating lastAnim!");
+                lastAnim = sourceAnim;
+                useClips = new bool[sourceAnim.animationClips.Length];
+                for (int i = 0; i < useClips.Length; i++)
+                {
+                    useClips[i] = true;
+                }
+            }
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            GUILayout.Label("Select clips to override:", GUILayout.Width(250));
+            GUILayout.EndHorizontal();
+            for (int i = 0; i < sourceAnim.animationClips.Length; i++)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+                useClips[i] = GUILayout.Toggle(useClips[i], sourceAnim.animationClips[i].name.ToString(), GUILayout.Width(190));
+                GUILayout.EndHorizontal();
+            }
+            
+        }
 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Original Spritesheet:", EditorStyles.boldLabel);
@@ -110,6 +139,10 @@ public class AnimatorOverrideClone : EditorWindow
         var newClips = new List<KeyValuePair<AnimationClip, AnimationClip>>();
         for (int i = 0; i < sourceAnims.Length; i++)
         {
+            if (useClips[i] == false)
+            {
+                continue;
+            }
             AnimationClip sourceAnim = sourceAnims[i];
 
             string sourceGuid = ReadSpritesIDsFromSheetMeta(sourceSheet, out string[] sourceSpriteIDs);
